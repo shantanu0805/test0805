@@ -1,0 +1,4 @@
+<aura:component implements="force:lightningQuickAction,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,forceCommunity:availableForAllPageTypes">
+	<aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <h3>Navigating to Create New Opportunity</h3>
+</aura:component>

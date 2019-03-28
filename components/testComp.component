@@ -1,0 +1,6 @@
+<apex:component >
+<apex:attribute name="myValue" description="abc" type="String" required="true"/>
+  <!-- Begin Default Content REMOVE THIS -->
+  Inside Component
+  <!-- End Default Content REMOVE THIS -->
+</apex:component>

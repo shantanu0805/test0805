@@ -1,0 +1,100 @@
+<aura:component controller="SFG_LookupComponentLightningController">
+    
+    <!-- SLDS CSS -->
+    <ltng:require styles="{!$Resource.slds203 + '/assets/styles/salesforce-lightning-design-system-vf.min.css'}" />
+    <ltng:require styles="{!$Resource.slds203 + '/assets/styles/salesforce-lightning-design-system-ltng.css'}" />
+
+    <!-- HTML attributes -->
+    <aura:attribute name="label" type="String" default="" access="global" />
+    <aura:attribute name="required" type="Boolean" default="false" access="global" />
+    <aura:attribute name="inputId" type="String" default="" access="private" description="Used to link label with input element" />
+    <aura:attribute name="value" type="String" default="" access="global" description="Used to read selected value from parent component" />
+    <aura:attribute name="resultsHolderId" type="String" default="" access="private" description="Used to find correct results holder element" />
+    <!-- EOF HTML attributes -->
+
+    <!-- Lookup attributtes -->
+    <aura:attribute name="lookupName" type="String" default="LookupInput" access="global" description="This name will be used in event fired after update - some other lookups might wait for that value" />
+    <aura:attribute name="labelFields" type="String[]" access="global" description="Set of fields which should be used for creating label (ex. FirstName and LastName)" />
+    <aura:attribute name="searchFields" type="String[]" access="global" description="Set of fields should be used for looking for values" />
+    <aura:attribute name="fieldToSelect" type="String" access="global" description="Sets field which will be passed after selecting element" />
+    <aura:attribute name="className" type="String" description="Class name of the input object, ex. Contact, passed to controller" />
+    <aura:attribute name="lookupStart" type="Integer" default="3" access="global" description="Used to set number of required characters to start searching" />
+    <aura:attribute name="keepList" type="Boolean" default="false" access="private" />
+    <aura:attribute name="glue" type="String" default=", " access="global" />
+    <aura:attribute name="timeout" type="Integer" default="" access="private" />
+    <aura:attribute name="keyTimeout" type="Integer" default="" access="private" />
+
+    <!-- If user wants to pass some additional info to controller -->
+    <aura:attribute name="optionalWhere" type="String[]" access="global" description="Array of additional fields to check" />
+    <aura:attribute name="optionalWhereValues" type="String[]" default="" access="global" description="Array of additional values - for fields from the top" />
+    <aura:attribute name="optionalWhereQuery" type="String" default="" access="private" description="Part of query passed to controller" />
+    <aura:attribute name="filterByUser" type="Boolean" default="false" access="global" description="Passed to controller - flag for filtering records based on user account" />
+    <aura:attribute name="includeFields" type="String[]" default="[]" access="global" description="Array to set required values in query - all of them are required by default and will be included in query" />
+
+    <!-- Lookup data -->
+    <aura:attribute name="records" type="List[]" access="private" description="Original records from controllers response" />
+    <aura:attribute name="parsedRecords" type="List[]" access="private" description="Parsed records" />
+    <aura:attribute name="items" type="List[]" access="public" description="Records after components parsing" />
+    <aura:attribute name="labelValue" type="String" default="" access="private" description="Value which user will see in input" />
+    <aura:attribute name="selectedValue" type="String" default="" access="global" description="Value which will be set after selection and passed to parent component" />
+    <aura:attribute name="resultsOpen" type="Boolean" default="false" access="private" description="Flag for showing list" />
+    <aura:attribute name="lookupLoading" type="Boolean" default="false" access="private" description="Spinner loader" />
+
+    <!-- Errors -->
+    <aura:attribute name="errors" type="String[]" default="" access="global" />
+    <aura:handler name="change" value="{!v.errors}" action="{!c.onErrorChange}"/>
+    
+    <!-- Init lookup input -->
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}" />
+    
+    <!-- Events -->
+    <aura:registerEvent name="LookupInputEvent" type="c:LookupInputEvent" />
+    <aura:handler event="c:LookupInputEvent" action="{!c.handleInputLookupEvt}" />
+    <aura:attribute name="fireEvent" type="Boolean" default="true" access="global" description="Flag for event fire" />
+
+    <aura:attribute name="listenToEvent" type="Boolean" default="false" access="global" description="Flag for listening for events from other Lookup Inputs" />
+    <aura:attribute name="listenToLookup" type="String" default="" access="global" description="Name of Lookup Input which this input should listen to - from lookupName attribute" />
+
+    <aura:handler name="change" value="{!v.selectedValue}" action="{!c.onDataChange}" />
+
+    <!-- Components body -->
+
+    <div class="{!'form-group has-feedback santafe-lookup' + (v.errors.length > 0 ? ' has-error' : '')}">
+
+        <div class="{!'slds-spinner_container ' + (v.lookupLoading ? 'visible' : 'hidden')}">
+          <div class="slds-spinner--brand slds-spinner slds-spinner--small" aria-hidden="false" role="alert">
+            <div class="slds-spinner__dot-a"></div>
+            <div class="slds-spinner__dot-b"></div>
+          </div>
+        </div>
+
+        <label class="control-label slds-form-element__label" for="{!v.inputId}">
+            <span>{!v.label}</span>
+            <aura:if isTrue="{!v.required}">
+                <span>*</span>
+            </aura:if>
+        </label>
+        
+        <input type="text" class="form-control slds-input" id="{!v.inputId}" required="{!v.required}" onkeyup="{!c.onKeyUp}" onblur="{!c.onBlur}" onfocus="{!c.clearTimeout}" onmouseenter="{!c.clearTimeout}" aura:id="input" value="{!v.labelValue}" />
+        <span class="glyphicon glyphicon-search form-control-feedback" aria-hidden="true"></span>
+
+        <aura:iteration items="{!v.errors}" var="error">
+            <span class="help-block">{!error.message}</span>
+        </aura:iteration>
+
+        <div id="{!v.resultsHolderId}" style="padding: 1%;" class="{!'results-holder ' + (v.resultsOpen == true ? 'visible' : 'hidden')}" aura:id="resultsHolder" onmouseenter="{!c.onKeepList}" onmouseleave="{!c.offKeepList}">
+            <ul aura:id="resultsList" class="{!(v.items.length > 0) ? '' : 'hidden'}">
+                <aura:iteration items="{!v.items}" var="item" indexVar="index">
+                    <li onclick="{!c.selectItem}" data-item="{!index}" style="cursor: pointer; padding: 1%;" class="resultLi" >
+                        <aura:unescapedHtml value="{!item._combinedLabel}" />
+                    </li>
+                </aura:iteration>
+            </ul>
+            <p class="{!(v.items.length > 0) ? 'hidden' : 'visible'}">
+                <span>No results.</span>
+            </p>
+        </div>
+    </div>
+
+
+</aura:component>

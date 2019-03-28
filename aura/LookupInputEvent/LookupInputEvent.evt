@@ -1,0 +1,7 @@
+<aura:event type="APPLICATION">
+	<aura:attribute name="lookupName" 		type="String"/>
+	<aura:attribute name="selectedValue" 	type="String"/>
+	<aura:attribute name="selectedLabel" 	type="String"/>
+	<aura:attribute name="keepValues"		type="Boolean" description="In some cases we don't want to reset lookups which listens to lookup which fires the event" />
+	<aura:attribute name="onlyForLookup"	type="Boolean" default="false" description="Only Lookup component should listen to this event" />
+</aura:event>
